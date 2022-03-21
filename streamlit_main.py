@@ -42,6 +42,16 @@ top_artist_df = top_artist_df.reset_index(drop=True)
 top_artist_df = top_artist_df[['artist', 'endTime']].head(10)
 top_artist_df = top_artist_df.rename(columns={'endTime': 'Count'})
 
+# --- how well do you like your own taste in music? --- 
+good_taste_df = streaming_data[streaming_data['artist_and_song'].isin(library['artist_and_song'])]
+good_taste_df = good_taste_df[['msPlayed', 'artist_and_song']]
+grouped_taste_df = good_taste_df.groupby(['artist_and_song']).mean()
+grouped_taste_df = grouped_taste_df.sort_values(by='msPlayed', ascending=True)
+# here we want to exclude all the songs that were'nt played at all because they were never forcibly skipped 
+grouped_taste_df = grouped_taste_df[grouped_taste_df['msPlayed'] > 1000.0]
+grouped_taste_df['artist_and_song'] = grouped_taste_df.index
+grouped_taste_df = grouped_taste_df.head(20)
+
 # --- group for daily listening chart ---
 l_df = streaming_data.copy()
 l_df.index = pd.to_datetime(l_df['endTime'], format='%Y-%m-%d %H:%M')  
@@ -72,6 +82,9 @@ fig_bar_artists['layout']['yaxis']['autorange'] = "reversed"
 
 fig_line = px.bar(time_df, x="time", y="msPlayed", width=1450, height=650, 
                   title='Daily Listening Pattern', color='msPlayed', color_continuous_scale=px.colors.sequential.Viridis)
+
+fig_music_taste = px.bar(grouped_taste_df, x='artist_and_song', y='msPlayed', width=800, height=650, 
+             color='msPlayed', text_auto=True, title="Songs you thought you liked,but you actually hate", color_continuous_scale=px.colors.sequential.Magma)
 
 body1 = '''
 ### Part I: Genreal Music Taste!
@@ -112,7 +125,11 @@ listen to music in the morning? In the evening? Perhaps a podcast over lunch? Le
 
 st.plotly_chart(fig_line, use_container_width=False)
 
+
 st.markdown(body2, unsafe_allow_html=False)
+st.plotly_chart(fig_music_taste, use_container_width=True)
+
+
 
 
 
