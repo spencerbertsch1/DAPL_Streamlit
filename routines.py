@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 # define path to data (pathlib works on any operating system)
 PATH_TO_THIS_FILE: Path = Path(__file__).resolve()
 ABSPATH_TO_DATA: Path = PATH_TO_THIS_FILE.parent / "MyData"
+ABSPATH_TO_CREDENTIALS: Path = PATH_TO_THIS_FILE.parent.parent / "spotify_app_credentials.json"
 
 
 class SpotData():
