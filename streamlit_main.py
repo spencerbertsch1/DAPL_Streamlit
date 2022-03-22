@@ -92,60 +92,6 @@ agg_15m = agg_15m[['msPlayed', 'time']]
 time_df: pd.DataFrame = agg_15m.groupby(['time']).sum()
 time_df['time'] = time_df.index
 
-# --- Get Music Genres using Spotify API --- 
-
-# Opening JSON file
-f = open(str(ABSPATH_TO_CREDENTIALS))
-# returns JSON object containing Spotify credentials as a python dictionary
-creds = json.load(f)
-# Closing file
-f.close()
-
-CLIENT_ID = creds['Client-ID']
-CLIENT_SECRET = creds['Client-Secret']
-
-
-AUTH_URL = 'https://accounts.spotify.com/api/token'
-
-# POST
-auth_response = requests.post(AUTH_URL, {
-    'grant_type': 'client_credentials',
-    'client_id': CLIENT_ID,
-    'client_secret': CLIENT_SECRET,
-})
-
-# convert the response to JSON
-auth_response_data = auth_response.json()
-
-# save the access token
-access_token = auth_response_data['access_token']
-
-headers = {
-    'Authorization': f'Bearer {access_token}'
-}
-
-# base URL of all Spotify API endpoints
-BASE_URL = 'https://api.spotify.com/v1/'
-
-# Track ID from the URI
-# track_id = '6y0igZArWVi6Iz0rj35c1Y'
-
-sp = spotipy.Spotify()
-
-client_credentials_manager = SpotifyClientCredentials(client_id=CLIENT_ID, client_secret=CLIENT_SECRET) 
-sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-
-artist= 'Moses Sumney'
-track= 'Lonely World'
-
-track_id_blob = sp.search(q='artist:' + artist + ' track:' + track, type='track')
-# we need to extract the id from the nested dictionary, list, and final dictionary 
-track_id = track_id_blob['tracks']['items'][0]['id']
-
-# actual GET request with proper header
-r = requests.get(BASE_URL + 'audio-features/' + track_id, headers=headers)
-r = r.json()
-
 # ----- PLOTLY -----
 
 # fig_bar_songs = px.bar(top_songs_df, x='artist_and_song', y='Count', width=800, height=650, 
