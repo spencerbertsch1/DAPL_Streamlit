@@ -211,6 +211,6 @@ def main(TEST_MODE: bool = False, chunk_size: int = 50):
 
 if __name__ == "__main__":
 
-    TEST_MODE=True   # <-- change this to False for the real run
-    chunk_size=50    # <-- change this to 1000 for the real run
+    TEST_MODE=False   # <-- change this to False for the real run
+    chunk_size=1000    # <-- change this to 1000 for the real run
     main(TEST_MODE=TEST_MODE, chunk_size=chunk_size)
