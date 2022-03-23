@@ -106,20 +106,30 @@ top_genres_df = audio_features.copy()
 top_genres_df = top_genres_df.groupby(by=["genres"]).count().sort_values(by=['trackName'], ascending=False)
 top_genres_df['genre'] = top_genres_df.index
 top_genres_df = top_genres_df.reset_index(drop=True)
-top_genres_df = top_genres_df[['genre', 'endTime']].head(10)
+top_genres_df = top_genres_df[['genre', 'endTime']].head(15)
 top_genres_df = top_genres_df.rename(columns={'endTime': 'Count'})
 
 # --- group for attributes over time chart ---
 audio_feats_df = audio_features.copy()
 audio_feats_df.index = pd.to_datetime(audio_feats_df['endTime'], format='%Y-%m-%d %H:%M')  
-audio_feats_df = audio_feats_df.groupby(pd.Grouper(freq='1D')).sum()
+audio_feats_df = audio_feats_df.groupby(pd.Grouper(freq='1D')).mean()
 audio_feats_df['day'] = audio_feats_df.index
 audio_feats_df['day_dt'] = audio_feats_df['day'].dt.date
-audio_feats_df = audio_feats_df[['energy', 'loudness', 'danceability', 'day_dt']]
+audio_feats_df_to_scale = audio_feats_df[['energy', 'loudness', 'danceability']]
+audio_feats_df_no_scale = audio_feats_df[['day_dt']]
+audio_feats_df_no_scale = audio_feats_df_no_scale.reset_index(drop=True)
 # we need to force all the loudness values to be positive here
-audio_feats_df['loudness'] = audio_feats_df['loudness'].abs()
+audio_feats_df_to_scale['loudness'] = audio_feats_df_to_scale['loudness'].abs()
 
+# perform a robust scaler transform of the dataset
+transformer = MinMaxScaler()
+audio_feats_df_to_scale = transformer.fit_transform(audio_feats_df_to_scale)
+audio_feats_df_to_scale = pd.DataFrame(audio_feats_df_to_scale)  # <-- convert back to pandas 
+audio_feats_df_to_scale = audio_feats_df_to_scale.fillna(0)
 
+# horizontally concatenate our no-scale feature back onto our scaled data
+audio_feats_df = pd.concat([audio_feats_df_no_scale, audio_feats_df_to_scale], axis=1)
+audio_feats_df = audio_feats_df.rename(columns={0: 'energy', 1: 'loudness', 2: 'danceability'})
 
 # ----- PLOTLY -----
 
@@ -144,13 +154,26 @@ fig_music_taste = px.bar(grouped_taste_df, x='artist_and_song', y='msPlayed', wi
              color='msPlayed', text_auto=True, title="Songs you thought you liked,but you actually hate", 
              color_continuous_scale=px.colors.sequential.Tealgrn)
 
-fig_pie = px.pie(top_genres_df, values='Count', names='genre', width=300, height=600, 
-                 title='Top Genres for Listener', color_discrete_sequence=px.colors.qualitative.Plotly)
+# old pie chart with no hold in the middle vvv
+# fig_pie = px.pie(top_genres_df, values='Count', names='genre', width=300, height=600, 
+#                  title='Top Genres for Listener', color_discrete_sequence=px.colors.qualitative.Plotly)
 
-
+pie_chart_padding: int = 75  # <-- increase this to make the pie chart smaller
 labels = list(top_genres_df['genre'])
 values = list(top_genres_df['Count'])
 fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3)])
+fig_pie.update_layout(
+    autosize=False,
+    width=350,
+    height=600,
+    margin=dict(
+        l=pie_chart_padding,
+        r=pie_chart_padding,
+        b=pie_chart_padding,
+        t=pie_chart_padding,
+        pad=4
+    )
+)
 
 
 date = list(audio_feats_df['day_dt'])
@@ -167,6 +190,11 @@ line_fig.add_trace(go.Scatter(x=date, y=loudness,
 line_fig.add_trace(go.Scatter(x=date, y=danceability,
                     mode='lines',
                     name='Danceability'))
+
+line_fig.update_layout(
+    autosize=False,
+    height=550
+)
 
 body1 = '''
 ### Part I: Genreal Music Taste!
@@ -204,6 +232,9 @@ with col2:
     st.header("Top Artists")
     st.plotly_chart(fig_bar_artists, use_container_width=True)
 
+st.markdown('We can now look at how the listener\'s energy, loudness, and danceability change over time!', unsafe_allow_html=False)
+st.plotly_chart(line_fig, use_container_width=True)
+
 st.markdown('We can now look at the listening pattern through out the day! Do you like to \
 listen to music in the morning? In the evening? Perhaps a podcast over lunch? Let\'s find out.', unsafe_allow_html=False)
 
@@ -217,8 +248,7 @@ with col2:
     st.header("Top Genres")
     st.plotly_chart(fig_pie, use_container_width=True)
 
-st.markdown('We can now look at how the listener\'s energy, loudness, and danceability change over time!', unsafe_allow_html=False)
-st.plotly_chart(line_fig, use_container_width=True)
+
 
 st.markdown(body2, unsafe_allow_html=False)
 st.plotly_chart(fig_music_taste, use_container_width=True)
