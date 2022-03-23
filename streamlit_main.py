@@ -21,9 +21,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
-import json
-import requests
-import spotipy
+from sklearn.preprocessing import MinMaxScaler
 from spotipy.oauth2 import SpotifyClientCredentials
 
 cid ="Your-client-ID" 
@@ -104,13 +102,24 @@ time_df: pd.DataFrame = agg_15m.groupby(['time']).sum()
 time_df['time'] = time_df.index
 
 # --- get top genres --- 
-print(audio_features.shape)
-
-top_genres_df = audio_features.groupby(by=["genres"]).count().sort_values(by=['trackName'], ascending=False)
+top_genres_df = audio_features.copy()
+top_genres_df = top_genres_df.groupby(by=["genres"]).count().sort_values(by=['trackName'], ascending=False)
 top_genres_df['genre'] = top_genres_df.index
 top_genres_df = top_genres_df.reset_index(drop=True)
 top_genres_df = top_genres_df[['genre', 'endTime']].head(10)
 top_genres_df = top_genres_df.rename(columns={'endTime': 'Count'})
+
+# --- group for attributes over time chart ---
+audio_feats_df = audio_features.copy()
+audio_feats_df.index = pd.to_datetime(audio_feats_df['endTime'], format='%Y-%m-%d %H:%M')  
+audio_feats_df = audio_feats_df.groupby(pd.Grouper(freq='1D')).sum()
+audio_feats_df['day'] = audio_feats_df.index
+audio_feats_df['day_dt'] = audio_feats_df['day'].dt.date
+audio_feats_df = audio_feats_df[['energy', 'loudness', 'danceability', 'day_dt']]
+# we need to force all the loudness values to be positive here
+audio_feats_df['loudness'] = audio_feats_df['loudness'].abs()
+
+
 
 # ----- PLOTLY -----
 
@@ -137,6 +146,27 @@ fig_music_taste = px.bar(grouped_taste_df, x='artist_and_song', y='msPlayed', wi
 
 fig_pie = px.pie(top_genres_df, values='Count', names='genre', width=300, height=600, 
                  title='Top Genres for Listener', color_discrete_sequence=px.colors.qualitative.Plotly)
+
+
+labels = list(top_genres_df['genre'])
+values = list(top_genres_df['Count'])
+fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3)])
+
+
+date = list(audio_feats_df['day_dt'])
+energy = list(audio_feats_df['energy'])
+loudness = list(audio_feats_df['loudness'])
+danceability = list(audio_feats_df['danceability'])
+line_fig = go.Figure()
+line_fig.add_trace(go.Scatter(x=date, y=energy,
+                    mode='lines',
+                    name='Energy'))
+line_fig.add_trace(go.Scatter(x=date, y=loudness,
+                    mode='lines',
+                    name='Loudness'))
+line_fig.add_trace(go.Scatter(x=date, y=danceability,
+                    mode='lines',
+                    name='Danceability'))
 
 body1 = '''
 ### Part I: Genreal Music Taste!
@@ -187,20 +217,9 @@ with col2:
     st.header("Top Genres")
     st.plotly_chart(fig_pie, use_container_width=True)
 
+st.markdown('We can now look at how the listener\'s energy, loudness, and danceability change over time!', unsafe_allow_html=False)
+st.plotly_chart(line_fig, use_container_width=True)
 
 st.markdown(body2, unsafe_allow_html=False)
 st.plotly_chart(fig_music_taste, use_container_width=True)
-
-
-
-
-
-# Create "How Well Do I Like My Own Taste in Music? The Dashboard!"
-
-# Finds the songs that you thought you would like, but you actualy hate! 
-
-# 1. Find the intersection of the songs you liked and your streaming songs 
-# 2. Group by the artist_and_song field and take the mean of the msPlayed field 
-# 3. Sort descending by the msPlayed field and display the "top" 25 songs with the least playtime 
-
 
