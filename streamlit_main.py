@@ -22,10 +22,6 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.preprocessing import MinMaxScaler
-from spotipy.oauth2 import SpotifyClientCredentials
-
-cid ="Your-client-ID" 
-secret = "Your-client-secret"
 
 from routines import SpotData, load_audio_features
 
@@ -106,7 +102,7 @@ top_genres_df = audio_features.copy()
 top_genres_df = top_genres_df.groupby(by=["genres"]).count().sort_values(by=['trackName'], ascending=False)
 top_genres_df['genre'] = top_genres_df.index
 top_genres_df = top_genres_df.reset_index(drop=True)
-top_genres_df = top_genres_df[['genre', 'endTime']].head(15)
+top_genres_df = top_genres_df[['genre', 'endTime']].head(40)
 top_genres_df = top_genres_df.rename(columns={'endTime': 'Count'})
 
 # --- group for attributes over time chart ---
@@ -132,12 +128,6 @@ audio_feats_df = pd.concat([audio_feats_df_no_scale, audio_feats_df_to_scale], a
 audio_feats_df = audio_feats_df.rename(columns={0: 'energy', 1: 'loudness', 2: 'danceability'})
 
 # ----- PLOTLY -----
-
-# fig_bar_songs = px.bar(top_songs_df, x='artist_and_song', y='Count', width=800, height=650, 
-#              color='Count', text_auto=True, title="Favorite Songs over the Past Year")
-
-# fig_bar_artists = px.bar(top_artist_df, x='artist', y='Count', width=800, height=650, 
-#              color='Count', text_auto=True, title="Favorite Artists over the Past Year")
 
 fig_bar_songs = px.bar(top_songs_df, x='Count', y='artist_and_song', height=550, # width=800, height=650, 
              color='Count', text_auto=True, title="Favorite Songs over the Past Year", orientation='h')
@@ -174,7 +164,6 @@ fig_pie.update_layout(
         pad=4
     )
 )
-
 
 date = list(audio_feats_df['day_dt'])
 energy = list(audio_feats_df['energy'])
@@ -247,8 +236,6 @@ with col1:
 with col2:
     st.header("Top Genres")
     st.plotly_chart(fig_pie, use_container_width=True)
-
-
 
 st.markdown(body2, unsafe_allow_html=False)
 st.plotly_chart(fig_music_taste, use_container_width=True)
