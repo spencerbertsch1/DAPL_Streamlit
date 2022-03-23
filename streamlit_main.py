@@ -20,6 +20,7 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.express as px
+import plotly.graph_objects as go
 import json
 import requests
 import spotipy
@@ -28,7 +29,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 cid ="Your-client-ID" 
 secret = "Your-client-secret"
 
-from routines import SpotData, ABSPATH_TO_CREDENTIALS
+from routines import SpotData, load_audio_features
 
 st.set_page_config(layout="wide")
 
@@ -51,10 +52,20 @@ sd = SpotData()
 streaming_data = sd.streaming_history
 library = sd.library
 
+# streaming data with audio features
+audio_features = load_audio_features() 
+
 # we need to convert the string datetime series to a pandas datetime column 
 streaming_data['date_filter'] = pd.to_datetime(streaming_data['endTime'], format='%Y-%m-%d %H:%M')  
 # and then we can filter the streaming data to only the season chosen by the user
 streaming_data = streaming_data[streaming_data['date_filter'].dt.month.isin(season_mapper[season_selection])]
+
+# we then repeat the process with the audio features that will be used in other charts 
+audio_features['date_filter'] = pd.to_datetime(audio_features['endTime'], format='%Y-%m-%d %H:%M')  
+
+# TODO vvv UNCOMMENT THIS vvv
+# audio_features = audio_features[audio_features['date_filter'].dt.month.isin(season_mapper[season_selection])]
+# TODO ^^^ UNCOMMENT THIS ^^^
 
 # --- get top songs ---
 top_songs_df = streaming_data.groupby(by=["artist_and_song"]).count().sort_values(by=['trackName'], ascending=False)
@@ -92,6 +103,15 @@ agg_15m = agg_15m[['msPlayed', 'time']]
 time_df: pd.DataFrame = agg_15m.groupby(['time']).sum()
 time_df['time'] = time_df.index
 
+# --- get top genres --- 
+print(audio_features.shape)
+
+top_genres_df = audio_features.groupby(by=["genres"]).count().sort_values(by=['trackName'], ascending=False)
+top_genres_df['genre'] = top_genres_df.index
+top_genres_df = top_genres_df.reset_index(drop=True)
+top_genres_df = top_genres_df[['genre', 'endTime']].head(10)
+top_genres_df = top_genres_df.rename(columns={'endTime': 'Count'})
+
 # ----- PLOTLY -----
 
 # fig_bar_songs = px.bar(top_songs_df, x='artist_and_song', y='Count', width=800, height=650, 
@@ -108,12 +128,15 @@ fig_bar_artists = px.bar(top_artist_df, x='Count', y='artist', height=550,  # wi
              color='Count', text_auto=True, title="Favorite Artists over the Past Year", orientation='h')
 fig_bar_artists['layout']['yaxis']['autorange'] = "reversed"
 
-fig_line = px.bar(time_df, x="time", y="msPlayed", width=1450, height=650, 
+fig_line = px.bar(time_df, x="time", y="msPlayed", width=1350, height=650, 
                   title='Daily Listening Pattern', color='msPlayed', color_continuous_scale=px.colors.sequential.Viridis)
 
 fig_music_taste = px.bar(grouped_taste_df, x='artist_and_song', y='msPlayed', width=800, height=650, 
              color='msPlayed', text_auto=True, title="Songs you thought you liked,but you actually hate", 
              color_continuous_scale=px.colors.sequential.Tealgrn)
+
+fig_pie = px.pie(top_genres_df, values='Count', names='genre', width=300, height=600, 
+                 title='Top Genres for Listener', color_discrete_sequence=px.colors.qualitative.Plotly)
 
 body1 = '''
 ### Part I: Genreal Music Taste!
@@ -154,7 +177,15 @@ with col2:
 st.markdown('We can now look at the listening pattern through out the day! Do you like to \
 listen to music in the morning? In the evening? Perhaps a podcast over lunch? Let\'s find out.', unsafe_allow_html=False)
 
-st.plotly_chart(fig_line, use_container_width=True)
+col1, col2 = st.columns(2)
+
+with col1:
+    st.header("Daily Listening Pattern")
+    st.plotly_chart(fig_line, use_container_width=True)
+
+with col2:
+    st.header("Top Genres")
+    st.plotly_chart(fig_pie, use_container_width=True)
 
 
 st.markdown(body2, unsafe_allow_html=False)
