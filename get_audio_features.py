@@ -25,7 +25,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 
 from routines import SpotData, ABSPATH_TO_CREDENTIALS, ABSPATH_TO_DATA
 
-def main(TEST_MODE: bool = False, chunk_size: int = 50):
+def main(TEST_MODE: bool = False, chunk_size: int = 50, rows_to_skip: int = 0):
     """
     Function to gather additional attributes about songs and artists using the Spotify API.
     
@@ -92,7 +92,7 @@ def main(TEST_MODE: bool = False, chunk_size: int = 50):
     track_cache = {'genre_cache': {}, 'energy_cache': {}, 'loudness_cache': {}, 'danceability_cache': {}}
     artist_cache = {}  # <-- {artist_uri: [list of genres]}
 
-    for i, row in enumerate(streaming_data.iterrows()):
+    for i, row in enumerate(streaming_data.iloc[rows_to_skip:].iterrows()):
         artist = row[1]['artistName']
         track = row[1]['trackName']
 
@@ -165,7 +165,7 @@ def main(TEST_MODE: bool = False, chunk_size: int = 50):
 
         # keep track of the progress
         if i%verbose_frequency == 0:
-            print(f'Time Elapsed: {time.strftime("%H:%M:%S", time.gmtime(time.time() - tic))}, Percent Complete: {round((i/n_rows), 3)*100}%')
+            print(f'Time Elapsed: {time.strftime("%H:%M:%S", time.gmtime(time.time() - tic))}, Percent Complete: {round(((i+rows_to_skip)/n_rows), 3)*100}%')
 
         # we need to store our progress so that we can start from the middle if the process fails
         if i%chunk_size == 0:
@@ -216,6 +216,7 @@ def main(TEST_MODE: bool = False, chunk_size: int = 50):
 
 if __name__ == "__main__":
 
-    TEST_MODE=False    # <-- change this to False for the real run
-    chunk_size=1000    # <-- change this to 1000 for the real run
-    main(TEST_MODE=TEST_MODE, chunk_size=chunk_size)
+    TEST_MODE = True    # <-- change this to False for the real run
+    chunk_size = 50    # <-- change this to 1000 for the real run
+    rows_to_skip = 17_000
+    main(TEST_MODE=TEST_MODE, chunk_size=chunk_size, rows_to_skip=rows_to_skip)
