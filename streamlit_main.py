@@ -102,7 +102,7 @@ top_genres_df = audio_features.copy()
 top_genres_df = top_genres_df.groupby(by=["genres"]).count().sort_values(by=['trackName'], ascending=False)
 top_genres_df['genre'] = top_genres_df.index
 top_genres_df = top_genres_df.reset_index(drop=True)
-top_genres_df = top_genres_df[['genre', 'endTime']].head(40)
+top_genres_df = top_genres_df[['genre', 'endTime']].head(20)
 top_genres_df = top_genres_df.rename(columns={'endTime': 'Count'})
 
 # --- group for attributes over time chart ---
