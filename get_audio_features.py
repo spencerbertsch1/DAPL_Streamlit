@@ -216,7 +216,7 @@ def main(TEST_MODE: bool = False, chunk_size: int = 50, rows_to_skip: int = 0):
 
 if __name__ == "__main__":
 
-    TEST_MODE = True    # <-- change this to False for the real run
-    chunk_size = 50    # <-- change this to 1000 for the real run
+    TEST_MODE = False    # <-- change this to False for the real run
+    chunk_size = 1000    # <-- change this to 1000 for the real run
     rows_to_skip = 17_000
     main(TEST_MODE=TEST_MODE, chunk_size=chunk_size, rows_to_skip=rows_to_skip)
