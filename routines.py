@@ -129,7 +129,7 @@ def barchart(df: pd.DataFrame):
 
 def load_audio_features():
     # TODO change this to reflect true path vvv
-    fpath: Path = ABSPATH_TO_DATA / 'audio_features_old.csv'
+    fpath: Path = ABSPATH_TO_DATA / 'audio_features' / 'audio_features_final.csv'
     df: pd.DataFrame = pd.read_csv(fpath, sep=',')
     return df
 

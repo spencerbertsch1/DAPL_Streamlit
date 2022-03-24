@@ -29,15 +29,15 @@ st.set_page_config(layout="wide")
 
 season_selection = st.sidebar.selectbox(
     "Would you like to narrow your results?",
-    ("Spring Tunes", "Summer Bops", "Autumn Songs", 'Winter Jams', 'All Year Long')
+    ('All Year Long', "Spring Tunes", "Summer Bops", "Autumn Songs", 'Winter Jams')
 )
 
 season_mapper: dict = {
     # maps the string chosen to the months included in the search
-    "Spring Tunes": [12, 1, 2], 
-    "Summer Bops": [3, 4, 5], 
-    "Autumn Songs": [6, 7, 8], 
-    'Winter Jams': [9, 10, 11], 
+    "Spring Tunes": [3, 4, 5], 
+    "Summer Bops": [6, 7, 8], 
+    "Autumn Songs": [9, 10, 11], 
+    'Winter Jams': [12, 1, 2], 
     'All Year Long': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 }
 
@@ -56,10 +56,7 @@ streaming_data = streaming_data[streaming_data['date_filter'].dt.month.isin(seas
 
 # we then repeat the process with the audio features that will be used in other charts 
 audio_features['date_filter'] = pd.to_datetime(audio_features['endTime'], format='%Y-%m-%d %H:%M')  
-
-# TODO vvv UNCOMMENT THIS vvv
-# audio_features = audio_features[audio_features['date_filter'].dt.month.isin(season_mapper[season_selection])]
-# TODO ^^^ UNCOMMENT THIS ^^^
+audio_features = audio_features[audio_features['date_filter'].dt.month.isin(season_mapper[season_selection])]
 
 # --- get top songs ---
 top_songs_df = streaming_data.groupby(by=["artist_and_song"]).count().sort_values(by=['trackName'], ascending=False)
@@ -94,8 +91,18 @@ agg_15m['d_time'] = agg_15m.index
 agg_15m['time'] = agg_15m['d_time'].dt.time
 agg_15m = agg_15m[['msPlayed', 'time']]
 
+# here we need to account for the time zone shift (roll back 5 hours)
 time_df: pd.DataFrame = agg_15m.groupby(['time']).sum()
-time_df['time'] = time_df.index
+# convert time to datetimeime index 
+time_df.index = pd.to_datetime(time_df.index, format='%H:%M:%S')  
+# roll the time back by 5 hours
+time_df = time_df.shift(periods=-5, freq="H")
+# convert index back to time
+time_df['d_time'] = time_df.index
+time_df['time'] = time_df['d_time'].dt.time
+time_df = time_df[['msPlayed', 'time']]
+time_df = time_df.rename(columns={'msPlayed': 'Songs Played'})
+
 
 # --- get top genres --- 
 top_genres_df = audio_features.copy()
@@ -105,27 +112,58 @@ top_genres_df = top_genres_df.reset_index(drop=True)
 top_genres_df = top_genres_df[['genre', 'endTime']].head(20)
 top_genres_df = top_genres_df.rename(columns={'endTime': 'Count'})
 
-# --- group for attributes over time chart ---
-audio_feats_df = audio_features.copy()
-audio_feats_df.index = pd.to_datetime(audio_feats_df['endTime'], format='%Y-%m-%d %H:%M')  
-audio_feats_df = audio_feats_df.groupby(pd.Grouper(freq='1D')).mean()
-audio_feats_df['day'] = audio_feats_df.index
-audio_feats_df['day_dt'] = audio_feats_df['day'].dt.date
-audio_feats_df_to_scale = audio_feats_df[['energy', 'loudness', 'danceability']]
-audio_feats_df_no_scale = audio_feats_df[['day_dt']]
-audio_feats_df_no_scale = audio_feats_df_no_scale.reset_index(drop=True)
-# we need to force all the loudness values to be positive here
-audio_feats_df_to_scale['loudness'] = audio_feats_df_to_scale['loudness'].abs()
 
-# perform a robust scaler transform of the dataset
-transformer = MinMaxScaler()
-audio_feats_df_to_scale = transformer.fit_transform(audio_feats_df_to_scale)
-audio_feats_df_to_scale = pd.DataFrame(audio_feats_df_to_scale)  # <-- convert back to pandas 
-audio_feats_df_to_scale = audio_feats_df_to_scale.fillna(0)
+def get_line_fig(time_agg: str):
 
-# horizontally concatenate our no-scale feature back onto our scaled data
-audio_feats_df = pd.concat([audio_feats_df_no_scale, audio_feats_df_to_scale], axis=1)
-audio_feats_df = audio_feats_df.rename(columns={0: 'energy', 1: 'loudness', 2: 'danceability'})
+    time_agg_mapper: dict = {
+        'Daily': '1D', 
+        'Weekly': '1W', 
+        'Monthly': '1M'
+    }
+
+    # --- group for attributes over time chart ---
+    audio_feats_df = audio_features.copy()
+    audio_feats_df.index = pd.to_datetime(audio_feats_df['endTime'], format='%Y-%m-%d %H:%M')  
+    audio_feats_df = audio_feats_df.groupby(pd.Grouper(freq=time_agg_mapper[time_agg])).mean()
+    audio_feats_df['day'] = audio_feats_df.index
+    audio_feats_df['day_dt'] = audio_feats_df['day'].dt.date
+    audio_feats_df_to_scale = audio_feats_df[['energy', 'loudness', 'danceability']]
+    audio_feats_df_no_scale = audio_feats_df[['day_dt']]
+    audio_feats_df_no_scale = audio_feats_df_no_scale.reset_index(drop=True)
+    # we need to force all the loudness values to be positive here
+    audio_feats_df_to_scale['loudness'] = audio_feats_df_to_scale['loudness'].abs()
+
+    # perform a robust scaler transform of the dataset
+    transformer = MinMaxScaler()
+    audio_feats_df_to_scale = transformer.fit_transform(audio_feats_df_to_scale)
+    audio_feats_df_to_scale = pd.DataFrame(audio_feats_df_to_scale)  # <-- convert back to pandas 
+    audio_feats_df_to_scale = audio_feats_df_to_scale.fillna(0)
+
+    # horizontally concatenate our no-scale feature back onto our scaled data
+    audio_feats_df = pd.concat([audio_feats_df_no_scale, audio_feats_df_to_scale], axis=1)
+    audio_feats_df = audio_feats_df.rename(columns={0: 'energy', 1: 'loudness', 2: 'danceability'})
+
+    date = list(audio_feats_df['day_dt'])
+    energy = list(audio_feats_df['energy'])
+    loudness = list(audio_feats_df['loudness'])
+    danceability = list(audio_feats_df['danceability'])
+    line_fig = go.Figure()
+    line_fig.add_trace(go.Scatter(x=date, y=energy,
+                        mode='lines',
+                        name='Energy'))
+    line_fig.add_trace(go.Scatter(x=date, y=loudness,
+                        mode='lines',
+                        name='Loudness'))
+    line_fig.add_trace(go.Scatter(x=date, y=danceability,
+                        mode='lines',
+                        name='Danceability'))
+
+    line_fig.update_layout(
+        autosize=False,
+        height=550
+    )
+
+    return line_fig
 
 # ----- PLOTLY -----
 
@@ -137,8 +175,8 @@ fig_bar_artists = px.bar(top_artist_df, x='Count', y='artist', height=550,  # wi
              color='Count', text_auto=True, title="Favorite Artists over the Past Year", orientation='h')
 fig_bar_artists['layout']['yaxis']['autorange'] = "reversed"
 
-fig_line = px.bar(time_df, x="time", y="msPlayed", width=1350, height=650, 
-                  title='Daily Listening Pattern', color='msPlayed', color_continuous_scale=px.colors.sequential.Viridis)
+fig_line = px.bar(time_df, x="time", y="Songs Played", width=1350, height=650, 
+                  title='Daily Listening Pattern', color='Songs Played', color_continuous_scale=px.colors.sequential.Viridis)
 
 fig_music_taste = px.bar(grouped_taste_df, x='artist_and_song', y='msPlayed', width=800, height=650, 
              color='msPlayed', text_auto=True, title="Songs you thought you liked,but you actually hate", 
@@ -163,26 +201,6 @@ fig_pie.update_layout(
         t=pie_chart_padding,
         pad=4
     )
-)
-
-date = list(audio_feats_df['day_dt'])
-energy = list(audio_feats_df['energy'])
-loudness = list(audio_feats_df['loudness'])
-danceability = list(audio_feats_df['danceability'])
-line_fig = go.Figure()
-line_fig.add_trace(go.Scatter(x=date, y=energy,
-                    mode='lines',
-                    name='Energy'))
-line_fig.add_trace(go.Scatter(x=date, y=loudness,
-                    mode='lines',
-                    name='Loudness'))
-line_fig.add_trace(go.Scatter(x=date, y=danceability,
-                    mode='lines',
-                    name='Danceability'))
-
-line_fig.update_layout(
-    autosize=False,
-    height=550
 )
 
 body1 = '''
@@ -222,6 +240,15 @@ with col2:
     st.plotly_chart(fig_bar_artists, use_container_width=True)
 
 st.markdown('We can now look at how the listener\'s energy, loudness, and danceability change over time!', unsafe_allow_html=False)
+
+
+time_agg = st.selectbox(
+     'How do you want to aggregate the song attributes?',
+     ('Daily', 'Weekly', 'Monthly'))
+st.write(f'You selected **{time_agg}**, feel free to try other time aggregations!.')
+
+
+line_fig = get_line_fig(time_agg=time_agg)
 st.plotly_chart(line_fig, use_container_width=True)
 
 st.markdown('We can now look at the listening pattern through out the day! Do you like to \
