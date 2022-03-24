@@ -112,6 +112,34 @@ top_genres_df = top_genres_df.reset_index(drop=True)
 top_genres_df = top_genres_df[['genre', 'endTime']].head(20)
 top_genres_df = top_genres_df.rename(columns={'endTime': 'Count'})
 
+def create_fig_pie(num_slices: int):
+    # --- get top genres --- 
+    top_genres_df = audio_features.copy()
+    top_genres_df = top_genres_df.groupby(by=["genres"]).count().sort_values(by=['trackName'], ascending=False)
+    top_genres_df['genre'] = top_genres_df.index
+    top_genres_df = top_genres_df.reset_index(drop=True)
+    top_genres_df = top_genres_df[['genre', 'endTime']].head(num_slices)
+    top_genres_df = top_genres_df.rename(columns={'endTime': 'Count'})
+
+    pie_chart_padding: int = 75  # <-- increase this to make the pie chart smaller
+    labels = list(top_genres_df['genre'])
+    values = list(top_genres_df['Count'])
+    fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3)])
+    fig_pie.update_layout(
+        autosize=False,
+        width=350,
+        height=600,
+        margin=dict(
+            l=pie_chart_padding,
+            r=pie_chart_padding,
+            b=pie_chart_padding,
+            t=pie_chart_padding/2,
+            pad=4
+        )
+    )
+
+    return fig_pie
+
 
 def get_line_fig(time_agg: str):
 
@@ -186,22 +214,7 @@ fig_music_taste = px.bar(grouped_taste_df, x='artist_and_song', y='msPlayed', wi
 # fig_pie = px.pie(top_genres_df, values='Count', names='genre', width=300, height=600, 
 #                  title='Top Genres for Listener', color_discrete_sequence=px.colors.qualitative.Plotly)
 
-pie_chart_padding: int = 75  # <-- increase this to make the pie chart smaller
-labels = list(top_genres_df['genre'])
-values = list(top_genres_df['Count'])
-fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3)])
-fig_pie.update_layout(
-    autosize=False,
-    width=350,
-    height=600,
-    margin=dict(
-        l=pie_chart_padding,
-        r=pie_chart_padding,
-        b=pie_chart_padding,
-        t=pie_chart_padding,
-        pad=4
-    )
-)
+
 
 body1 = '''
 ### Part I: Genreal Music Taste!
@@ -262,6 +275,11 @@ with col1:
 
 with col2:
     st.header("Top Genres")
+    num_slices: int = st.select_slider(
+        'Select the number of slices in the pie chart',
+        options=list(range(5, 50)))
+
+    fig_pie = create_fig_pie(num_slices=num_slices)
     st.plotly_chart(fig_pie, use_container_width=True)
 
 st.markdown(body2, unsafe_allow_html=False)
