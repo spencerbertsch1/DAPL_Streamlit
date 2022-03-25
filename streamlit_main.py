@@ -30,7 +30,7 @@ st.set_page_config(layout="wide")
 
 season_selection = st.sidebar.selectbox(
     "Would you like to narrow your results?",
-    ("Spring Tunes", 'All Year Long', "Spring Tunes", "Summer Bops", "Autumn Songs", 'Winter Jams')
+    ('All Year Long', "Spring Tunes", "Summer Bops", "Autumn Songs", 'Winter Jams')
 )
 
 season_mapper: dict = {
@@ -209,6 +209,32 @@ def get_line_fig(time_agg: str):
 
     return line_fig
 
+
+def get_fig_music_taste(threshold: str):
+
+    threshold_mapper: dict = {
+        'Why did I ever like this song? Give me the next one.': 1000.0, 
+        'It\'s fine, but I don\'t want it now.': 5000.0, 
+        'I can\'t decide... Skip after at least ten seconds.': 10000.0
+    }
+
+    # --- how well do you like your own taste in music? --- 
+    good_taste_df = streaming_data[streaming_data['artist_and_song'].isin(library['artist_and_song'])]
+    good_taste_df = good_taste_df[['msPlayed', 'artist_and_song']]
+    grouped_taste_df = good_taste_df.groupby(['artist_and_song']).mean()
+    grouped_taste_df = grouped_taste_df.sort_values(by='msPlayed', ascending=True)
+    # here we want to exclude all the songs that were'nt played at all because they were never forcibly skipped 
+    grouped_taste_df = grouped_taste_df[grouped_taste_df['msPlayed'] > threshold_mapper[threshold]]
+    grouped_taste_df['artist_and_song'] = grouped_taste_df.index
+    grouped_taste_df = grouped_taste_df.head(20)
+
+    fig_music_taste = px.bar(grouped_taste_df, x='artist_and_song', y='msPlayed', width=800, height=650, 
+             color='msPlayed', text_auto=True, title="Songs you thought you liked,but you actually hate", 
+             color_continuous_scale=px.colors.sequential.Tealgrn)
+
+    return fig_music_taste
+    
+
 # ----- PLOTLY -----
 
 fig_bar_songs = px.bar(top_songs_df, x='Count', y='artist_and_song', height=550, # width=800, height=650, 
@@ -222,41 +248,26 @@ fig_bar_artists['layout']['yaxis']['autorange'] = "reversed"
 fig_line = px.bar(time_df, x="time", y="Songs Played", width=1350, height=650, 
                   title='Daily Listening Pattern', color='Songs Played', color_continuous_scale=px.colors.sequential.Viridis)
 
-fig_music_taste = px.bar(grouped_taste_df, x='artist_and_song', y='msPlayed', width=800, height=650, 
-             color='msPlayed', text_auto=True, title="Songs you thought you liked,but you actually hate", 
-             color_continuous_scale=px.colors.sequential.Tealgrn)
-
-# old pie chart with no hold in the middle vvv
-# fig_pie = px.pie(top_genres_df, values='Count', names='genre', width=300, height=600, 
-#                  title='Top Genres for Listener', color_discrete_sequence=px.colors.qualitative.Plotly)
-
-
-
-body1 = '''
-### Part I: Genreal Music Taste!
-A look at top artists, songs, and an overview of your previous year's listening habits: 
-
-'''
-
-body2 = '''
-### Part II: How Well Do I Like My Own Taste in Music? 
-Find all the songs that you thought you would like, but you actualy hate! 
-
-'''
 
 # --- STREAMLIT CODE ---
 
-st.header('Spotify Dashboard', anchor=None)
+st.markdown('# Spotify Dashboard', unsafe_allow_html=False)
 
 st.markdown('Author: [Spencer Bertsch](https://github.com/spencerbertsch1). Thanks to my pal [Mike Koshakow](https://github.com/Cpt-Catnip) for letting me show his music preferences to the world!', unsafe_allow_html=False)
 
-st.write(f'You\'ve selected: **{season_selection}**. Use the sidebar on the left to see other options :sunglasses:')
+st.markdown('Feel free to check out [the github repo for this project.](https://github.com/spencerbertsch1/DAPL_Streamlit) \n \
+            The README has much more information about how to set up your own running version of this dashboard and how you can adapt it to create your own music taste tracker.', unsafe_allow_html=False)
 
-st.write(f'This simple dashboard was made as an exercise for the DAPL course at Dartmouth College. Feel free to use this dashboard \
+st.write(f'This dashboard was made as an exercise for the DAPL course at Dartmouth College. Feel free to use this dashboard \
 as a template or starting point for your own project!')
 
-st.markdown(body1, unsafe_allow_html=False)
+st.write(f'You\'ve selected: **{season_selection}**. Use the sidebar on the left to see other options :sunglasses:')
 
+
+st.markdown('''
+## General Music Taste
+We first take a look at top artists, songs, and an overview of the listener's previous year's listening habits: 
+''', unsafe_allow_html=False)
 
 col1, col2= st.columns(2)
 
@@ -268,29 +279,39 @@ with col2:
     st.header("Top Artists")
     st.plotly_chart(fig_bar_artists, use_container_width=True)
 
-st.markdown('We can now look at how the listener\'s energy, loudness, and danceability change over time!', unsafe_allow_html=False)
+st.markdown('''
+## Energy, Loudness, & Danceability
+We can now look at how the listener\'s energy, loudness, and danceability change over time!
+
+
+
+''', unsafe_allow_html=False)
 
 
 time_agg = st.selectbox(
      'How do you want to aggregate the song attributes?',
      ('Daily', 'Weekly', 'Monthly'))
-st.write(f'You selected **{time_agg}**, feel free to try other time aggregations!.')
+st.write(f'You selected **{time_agg}**, feel free to try other time aggregations for the listener\'s energy, loudness, and danceability.')
 
 
 line_fig = get_line_fig(time_agg=time_agg)
 st.plotly_chart(line_fig, use_container_width=True)
 
-st.markdown('We can now look at the listening pattern through out the day! Do you like to \
-listen to music in the morning? In the evening? Perhaps a podcast over lunch? Let\'s find out.', unsafe_allow_html=False)
+
 
 col1, col2 = st.columns(2)
 
 with col1:
     st.header("Daily Listening Pattern")
+    st.markdown('We can now look at the listening pattern throughout the day! Do you like to \
+listen to music in the morning? In the evening? Perhaps a podcast over lunch? Let\'s find out.', unsafe_allow_html=False)
+    
     st.plotly_chart(fig_line, use_container_width=True)
 
 with col2:
     st.header("Top Genres")
+    st.markdown('We can also examine the top genres listened to over this time period! Traditionally pie charts should be capped at around ten slices, \
+    but just look at some of these genres! Anybody ever heard of bubble grunge?', unsafe_allow_html=False)
     num_slices: int = st.select_slider(
         'Select the number of slices in the pie chart',
         options=list(range(5, 50)))
@@ -298,6 +319,30 @@ with col2:
     fig_pie = create_fig_pie(num_slices=num_slices)
     st.plotly_chart(fig_pie, use_container_width=True)
 
-st.markdown(body2, unsafe_allow_html=False)
+st.markdown('''
+# How Well Do I Like My Own Taste in Music? 
+Find all the songs that you thought you would like, but you actually hate! This section of the dashboard finds the intersection of songs that have been liked by the listener (added to their "liked" songs), 
+but whenever the song comes on the listener skips them immediately. These songs, therefore, are songs that the listener thought they would enjoy, but they never make a good enough impression to actually listen to. 
+
+The songs are broken into three groups representing songs listened to for one, five, or ten seconds before harsh judgement was passed and the song was skipped. 
+
+''', unsafe_allow_html=False)
+
+threshold = st.radio(
+     "How do you want to filter all of these not-so-liked songs?",
+     ('Why did I ever like this song? Give me the next one.', 
+     'It\'s fine, but I don\'t want it now.', 
+     'I can\'t decide... Skip after at least ten seconds.'))
+
+fig_music_taste = get_fig_music_taste(threshold=threshold)
 st.plotly_chart(fig_music_taste, use_container_width=True)
 
+st.markdown(""" 
+## References
+
+I was inspired to make this dashboard by my friend [Anne Bode](https://annebode.medium.com/) who made a similar dashboard in Tableau, [outlined here](https://towardsdatascience.com/visualizing-spotify-data-with-python-tableau-687f2f528cdd). 
+
+Like Anne, I also found [this article](https://stmorse.github.io/journal/spotify-api.html) by Steven Morse very helpful when learning how to use Spotify's many APIs to get the information I wanted. 
+
+Thanks for viewing this dashboard! If you enjoy it, please give [the repository](https://github.com/spencerbertsch1/DAPL_Streamlit) a star and feel free to build upon the code in this project to make your own fun music-inspired dashboard of your own! 
+""", unsafe_allow_html=False)
