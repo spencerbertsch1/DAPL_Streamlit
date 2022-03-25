@@ -1,7 +1,5 @@
 # Streamlit Demo App 
 
-
-
 <p align="center">
   <img src="https://user-images.githubusercontent.com/20422614/160195268-311e1fca-9397-429c-b99f-aeb1d064c04f.png" alt="drawing" width="55%"/>
 </p>
@@ -15,8 +13,6 @@ Dartmouth College
 Spring 2022  
 
 Big thanks to my pal [Mike Koshakow](https://github.com/Cpt-Catnip) for letting me share his music preferences with the world! 
-
-If you like this project, feel free to give this repository a star ⭐
 
 # How to create a dashboard using your own spotify data
 
@@ -32,7 +28,7 @@ Note you might have more than one StreamingHistory.json file. That's okay, just 
 4. Next you will need to create a spotify developer account using [this link](https://developer.spotify.com/dashboard/applications), and create a new project. After you create the project, you will need to copy the Client-ID and the Client-Secret into a new .json file called `spotify_app_credentials.json`. 
 5. Your `spotify_app_credentials.json` file should contain a single line in the following format: `{"Client-ID": "XXXX", "Client-Secret": "XXXX"}`.
 Place your new json file into the directory one level above the working directory of this project alongside `DAPL_Streamlit`. 
-6. You're doing great - just a few more steps! Now run the `get_audio_features.py` script by running the following command: 
+6. Just a few more steps! Now run the `get_audio_features.py` script by running the following command: 
 - `$ python3 get_audio_features.py`  
 This script can take a while to run depending on how many songs you've listened to in the past year. For a listener with 24k songs streamed it took about an hour. The limiting factor here is not the machine running the script, but the response time for the APIs returning all the data we need to collect.  
 7. Once that's done you will have all the data you need! Last step is to run the dashboard using the following command: 
@@ -62,7 +58,7 @@ As mentioned at the bottom of the dashboard itself, I was inspired to make this 
 
 Like Anne, I also found [this article](https://stmorse.github.io/journal/spotify-api.html) by Steven Morse very helpful when learning how to use Spotify's many APIs to get the information I wanted. 
 
-Thanks for viewing this dashboard! If you enjoy it, please give [the repository](https://github.com/spencerbertsch1/DAPL_Streamlit) a star and feel free to build upon the code in this project to make a fun, music-inspired dashboard of your own! 
+Thanks for viewing this dashboard! If you enjoy it, please give [the repository](https://github.com/spencerbertsch1/DAPL_Streamlit) a star ⭐ and feel free to build upon the code in this project to make a fun, music-inspired dashboard of your own! 
 
 ### Image Sources
 
