@@ -15,6 +15,7 @@ This file can be run from the command line by running: $ streamlit run streamlit
 """
 
 import altair as alt
+from datetime import date
 import pandas as pd
 import streamlit as st
 import numpy as np
@@ -29,7 +30,7 @@ st.set_page_config(layout="wide")
 
 season_selection = st.sidebar.selectbox(
     "Would you like to narrow your results?",
-    ('All Year Long', "Spring Tunes", "Summer Bops", "Autumn Songs", 'Winter Jams')
+    ("Spring Tunes", 'All Year Long', "Spring Tunes", "Summer Bops", "Autumn Songs", 'Winter Jams')
 )
 
 season_mapper: dict = {
@@ -40,6 +41,9 @@ season_mapper: dict = {
     'Winter Jams': [12, 1, 2], 
     'All Year Long': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 }
+
+todays_date = date.today()
+curr_year = int(todays_date.year)  # <-- we will use this later 
 
 # read the data into memory 
 sd = SpotData()
@@ -57,6 +61,10 @@ streaming_data = streaming_data[streaming_data['date_filter'].dt.month.isin(seas
 # we then repeat the process with the audio features that will be used in other charts 
 audio_features['date_filter'] = pd.to_datetime(audio_features['endTime'], format='%Y-%m-%d %H:%M')  
 audio_features = audio_features[audio_features['date_filter'].dt.month.isin(season_mapper[season_selection])]
+
+# we need to do this to fix a small bug with the line graph: 
+line_audio_features: pd.DataFrame = audio_features.copy()
+line_audio_features = line_audio_features[line_audio_features['date_filter'].dt.year != curr_year]
 
 # --- get top songs ---
 top_songs_df = streaming_data.groupby(by=["artist_and_song"]).count().sort_values(by=['trackName'], ascending=False)
@@ -82,7 +90,7 @@ grouped_taste_df = grouped_taste_df[grouped_taste_df['msPlayed'] > 1000.0]
 grouped_taste_df['artist_and_song'] = grouped_taste_df.index
 grouped_taste_df = grouped_taste_df.head(20)
 
-# --- group for daily listening chart ---
+
 l_df = streaming_data.copy()
 l_df.index = pd.to_datetime(l_df['endTime'], format='%Y-%m-%d %H:%M')  
 agg_15m = l_df.groupby(pd.Grouper(freq='15Min')).count()
@@ -99,8 +107,11 @@ time_df.index = pd.to_datetime(time_df.index, format='%H:%M:%S')
 time_df = time_df.shift(periods=-5, freq="H")
 # convert index back to time
 time_df['d_time'] = time_df.index
-time_df['time'] = time_df['d_time'].dt.time
+# change the time sequence to 12 hour instead of military time 
+time_df['time'] = time_df['d_time'].dt.strftime('%I:%M:%S %p')
+# only keep the columns we need
 time_df = time_df[['msPlayed', 'time']]
+# rename columns to something more representative of reality 
 time_df = time_df.rename(columns={'msPlayed': 'Songs Played'})
 
 
@@ -149,8 +160,13 @@ def get_line_fig(time_agg: str):
         'Monthly': '1M'
     }
 
+    # vvv we add this to fix a bug with the spring data
+    if season_selection == "Spring Tunes":
+        audio_feats_df = line_audio_features.copy()
+    else:
+        audio_feats_df = audio_features.copy()
+
     # --- group for attributes over time chart ---
-    audio_feats_df = audio_features.copy()
     audio_feats_df.index = pd.to_datetime(audio_feats_df['endTime'], format='%Y-%m-%d %H:%M')  
     audio_feats_df = audio_feats_df.groupby(pd.Grouper(freq=time_agg_mapper[time_agg])).mean()
     audio_feats_df['day'] = audio_feats_df.index
