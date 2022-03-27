@@ -14,7 +14,21 @@ Spring 2022
 
 Big thanks to my pal [Mike Koshakow](https://github.com/Cpt-Catnip) for letting me share his music preferences with the world! 
 
-# How to create a dashboard using your own spotify data
+# How to create a dashboard using your own spotify data (Simple)
+1. Clone this repository locally.
+2. Request your data from Spotify using [this link](https://www.spotify.com/us/account/privacy/). Be patient, this can take a few days. 
+3. Once you receive your data from Spotify, place the important JSON files into the `MyData` directory. Spotify will give you lots of data including billing information, but you only need the following files: 
+- SearchQueries.json
+- YourLibrary.json
+- StreamingHistory.json  
+Note you might have more than one StreamingHistory.json file. That's okay, just copy all the streaming history files into the `MyData` directory.  
+4. Set the `DASHBOARD_SIMPLE` variable to `True` at the top of the `streamlit_main.py` script (line 29).  
+5. Once that's done you will have all the data you need! Last step is to run the dashboard using the following command: 
+- `$ streamlit run streamlit_main.py`
+After that the dashboard should open in your default web browser. 
+
+
+# How to create a dashboard using your own spotify data (Advanced)
 
 If you want to see this spotify dashboard reflect your own music taste, you will need to follow these steps: 
 

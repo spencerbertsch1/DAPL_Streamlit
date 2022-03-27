@@ -26,6 +26,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 from routines import SpotData, load_audio_features
 
+DASHBOARD_SIMPLE: bool = False
+
 st.set_page_config(layout="wide")
 
 season_selection = st.sidebar.selectbox(
@@ -279,45 +281,50 @@ with col2:
     st.header("Top Artists")
     st.plotly_chart(fig_bar_artists, use_container_width=True)
 
-st.markdown('''
-## Energy, Loudness, & Danceability
-We can now look at how the listener\'s energy, loudness, and danceability change over time!
+if not DASHBOARD_SIMPLE:
+    # here we only display the Energy, Loudness, & Danceability attributes if the dashboard is NOT set to simple
+    st.markdown('''
+    ## Energy, Loudness, & Danceability
+    We can now look at how the listener\'s energy, loudness, and danceability change over time!
+    ''', unsafe_allow_html=False)
+
+    time_agg = st.selectbox(
+        'How do you want to aggregate the song attributes?',
+        ('Daily', 'Weekly', 'Monthly'))
+    st.write(f'You selected **{time_agg}**, feel free to try other time aggregations for the listener\'s energy, loudness, and danceability.')
 
 
-
-''', unsafe_allow_html=False)
-
-
-time_agg = st.selectbox(
-     'How do you want to aggregate the song attributes?',
-     ('Daily', 'Weekly', 'Monthly'))
-st.write(f'You selected **{time_agg}**, feel free to try other time aggregations for the listener\'s energy, loudness, and danceability.')
+    line_fig = get_line_fig(time_agg=time_agg)
+    st.plotly_chart(line_fig, use_container_width=True)
 
 
-line_fig = get_line_fig(time_agg=time_agg)
-st.plotly_chart(line_fig, use_container_width=True)
-
-
-
-col1, col2 = st.columns(2)
-
-with col1:
+if DASHBOARD_SIMPLE:
+    # for the simple version of the dashbaord, we only want to display the "daily listening pattern" chart 
     st.header("Daily Listening Pattern")
     st.markdown('We can now look at the listening pattern throughout the day! Do you like to \
 listen to music in the morning? In the evening? Perhaps a podcast over lunch? Let\'s find out.', unsafe_allow_html=False)
-    
     st.plotly_chart(fig_line, use_container_width=True)
+else:
+    # for the complex version of the dashbaord, we also include a pie chart showing the listener's genres
+    col1, col2 = st.columns(2)
 
-with col2:
-    st.header("Top Genres")
-    st.markdown('We can also examine the top genres listened to over this time period! Traditionally pie charts should be capped at around ten slices, \
-    but just look at some of these genres! Anybody ever heard of bubble grunge?', unsafe_allow_html=False)
-    num_slices: int = st.select_slider(
-        'Select the number of slices in the pie chart',
-        options=list(range(5, 50)))
+    with col1:
+        st.header("Daily Listening Pattern")
+        st.markdown('We can now look at the listening pattern throughout the day! Do you like to \
+    listen to music in the morning? In the evening? Perhaps a podcast over lunch? Let\'s find out.', unsafe_allow_html=False)
+        
+        st.plotly_chart(fig_line, use_container_width=True)
 
-    fig_pie = create_fig_pie(num_slices=num_slices)
-    st.plotly_chart(fig_pie, use_container_width=True)
+    with col2:
+        st.header("Top Genres")
+        st.markdown('We can also examine the top genres listened to over this time period! Traditionally pie charts should be capped at around ten slices, \
+        but just look at some of these genres! Anybody ever heard of bubble grunge?', unsafe_allow_html=False)
+        num_slices: int = st.select_slider(
+            'Select the number of slices in the pie chart',
+            options=list(range(5, 50)))
+
+        fig_pie = create_fig_pie(num_slices=num_slices)
+        st.plotly_chart(fig_pie, use_container_width=True)
 
 st.markdown('''
 # How Well Do I Like My Own Taste in Music? 
