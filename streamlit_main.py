@@ -344,5 +344,5 @@ I was inspired to make this dashboard by my friend [Anne Bode](https://annebode.
 
 Like Anne, I also found [this article](https://stmorse.github.io/journal/spotify-api.html) by Steven Morse very helpful when learning how to use Spotify's many APIs to get the information I wanted. 
 
-Thanks for viewing this dashboard! If you enjoy it, please give [the repository](https://github.com/spencerbertsch1/DAPL_Streamlit) a star and feel free to build upon the code in this project to make your own fun music-inspired dashboard of your own! 
+Thanks for viewing this dashboard! If you enjoy it, please give [the repository](https://github.com/spencerbertsch1/DAPL_Streamlit) a star and feel free to build upon the code in this project to make your own fun, music-inspired dashboard of your own! 
 """, unsafe_allow_html=False)
