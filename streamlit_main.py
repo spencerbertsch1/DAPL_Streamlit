@@ -247,7 +247,7 @@ fig_bar_artists = px.bar(top_artist_df, x='Count', y='artist', height=550,  # wi
              color='Count', text_auto=True, title="Favorite Artists over the Past Year", orientation='h')
 fig_bar_artists['layout']['yaxis']['autorange'] = "reversed"
 
-fig_line = px.bar(time_df, x="time", y="Songs Played", width=1350, height=650, 
+fig_bar_listening = px.bar(time_df, x="time", y="Songs Played", width=1350, height=650, 
                   title='Daily Listening Pattern', color='Songs Played', color_continuous_scale=px.colors.sequential.Viridis)
 
 
@@ -303,7 +303,7 @@ if DASHBOARD_SIMPLE:
     st.header("Daily Listening Pattern")
     st.markdown('We can now look at the listening pattern throughout the day! Do you like to \
 listen to music in the morning? In the evening? Perhaps a podcast over lunch? Let\'s find out.', unsafe_allow_html=False)
-    st.plotly_chart(fig_line, use_container_width=True)
+    st.plotly_chart(fig_bar_listening, use_container_width=True)
 else:
     # for the complex version of the dashbaord, we also include a pie chart showing the listener's genres
     col1, col2 = st.columns(2)
@@ -313,7 +313,7 @@ else:
         st.markdown('We can now look at the listening pattern throughout the day! Do you like to \
     listen to music in the morning? In the evening? Perhaps a podcast over lunch? Let\'s find out.', unsafe_allow_html=False)
         
-        st.plotly_chart(fig_line, use_container_width=True)
+        st.plotly_chart(fig_bar_listening, use_container_width=True)
 
     with col2:
         st.header("Top Genres")
