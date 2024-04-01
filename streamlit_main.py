@@ -157,9 +157,9 @@ def create_fig_pie(num_slices: int):
 def get_line_fig(time_agg: str):
 
     time_agg_mapper: dict = {
-        'Daily': '1D', 
-        'Weekly': '1W', 
-        'Monthly': '1M'
+        'Daily': 'D', 
+        'Weekly': 'W', 
+        'Monthly': 'M'
     }
 
     # vvv we add this to fix a bug with the spring data
@@ -170,7 +170,7 @@ def get_line_fig(time_agg: str):
 
     # --- group for attributes over time chart ---
     audio_feats_df.index = pd.to_datetime(audio_feats_df['endTime'], format='%Y-%m-%d %H:%M')  
-    audio_feats_df = audio_feats_df.groupby(pd.Grouper(freq=time_agg_mapper[time_agg])).mean()
+    audio_feats_df = audio_feats_df.groupby(pd.Grouper(freq=time_agg_mapper[time_agg])).mean(numeric_only=True)
     audio_feats_df['day'] = audio_feats_df.index
     audio_feats_df['day_dt'] = audio_feats_df['day'].dt.date
     audio_feats_df_to_scale = audio_feats_df[['energy', 'loudness', 'danceability']]
@@ -292,7 +292,6 @@ if not DASHBOARD_SIMPLE:
         'How do you want to aggregate the song attributes?',
         ('Daily', 'Weekly', 'Monthly'))
     st.write(f'You selected **{time_agg}**, feel free to try other time aggregations for the listener\'s energy, loudness, and danceability.')
-
 
     line_fig = get_line_fig(time_agg=time_agg)
     st.plotly_chart(line_fig, use_container_width=True)
